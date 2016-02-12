@@ -26,6 +26,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class VisualStudioCoverageXmlReportParser implements CoverageParser {
 
@@ -39,6 +41,7 @@ public class VisualStudioCoverageXmlReportParser implements CoverageParser {
 
   private static class Parser {
 
+    private static Map<String, Coverage> cache = new TreeMap<String, Coverage>(String.CASE_INSENSITIVE_ORDER);
     private final File file;
     private XmlParserHelper xmlParserHelper;
     private final Multimap<Integer, Integer> coveredLines = HashMultimap.create();
@@ -51,15 +54,38 @@ public class VisualStudioCoverageXmlReportParser implements CoverageParser {
     }
 
     public void parse() {
+
+      String fileName = file.getAbsolutePath();
+      if (tryLoadFromCache(fileName)) {
+    	  return;
+      }
+    	  
       try {
         xmlParserHelper = new XmlParserHelper(file);
         checkRootTag();
         dispatchTags();
+        updateCache(fileName);
       } finally {
         if (xmlParserHelper != null) {
           xmlParserHelper.close();
         }
       }
+    }
+
+    private Boolean tryLoadFromCache(String fileAbsolutePath) {
+      if (!cache.containsKey(fileAbsolutePath)) {
+        return false;
+      }
+
+      LOG.info("use cached information for file " + fileAbsolutePath);
+      Coverage cachedValue = cache.get(fileAbsolutePath);
+      this.coverage.recycle(cachedValue);
+      
+      return true;
+    }
+    
+    private void updateCache(String fileAbsolutePath) {
+      cache.put(fileAbsolutePath, this.coverage);
     }
 
     private void dispatchTags() {

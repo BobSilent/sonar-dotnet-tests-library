@@ -27,7 +27,7 @@ import java.util.Set;
 
 public class Coverage {
 
-  private final Table<String, Integer, Integer> hitsByLineAndFile = HashBasedTable.create();
+  private Table<String, Integer, Integer> hitsByLineAndFile = HashBasedTable.create();
 
   public void addHits(String file, int line, int hits) {
     Integer oldHits = hitsByLineAndFile.get(file, line);
@@ -49,5 +49,8 @@ public class Coverage {
   public Map<Integer, Integer> hits(String file) {
     return hitsByLineAndFile.row(file);
   }
-
+  
+  public void recycle(Coverage oldCoverage) {
+	  hitsByLineAndFile = oldCoverage.hitsByLineAndFile;
+  }
 }
